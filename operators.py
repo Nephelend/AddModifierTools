@@ -41,21 +41,20 @@ def check_mode_for_object(obj=""):
 
 # ANCHOR Function - Apply modifier for object
 def apply_modifiers_for_object(obj=""):
-    """ Apply modifiers for object """
+    """ Apply modifiers for object, return a list of (modifier name, error) that failed """
+    failed = []
     if obj:
         obj_data = bpy.data.objects[obj]
 
-        # Copying context for the operator's override
-        override = bpy.context.copy()
-        override["object"] = obj_data
-
-        mod_list = obj_data.modifiers
-        if len(mod_list) > 0:
-            for mod in mod_list:
-                override["modifier"] = mod
-                bpy.ops.object.modifier_apply(override,
-                                              apply_as="DATA",
-                                              modifier=override["modifier"].name)
+        # Copy the names first, applying a modifier removes it from the stack
+        mod_names = [mod.name for mod in obj_data.modifiers]
+        with bpy.context.temp_override(object=obj_data, active_object=obj_data):
+            for mod_name in mod_names:
+                try:
+                    bpy.ops.object.modifier_apply(modifier=mod_name)
+                except RuntimeError as err:
+                    failed.append((mod_name, str(err).strip()))
+    return failed
 
 
 # ANCHOR Function - Delete modifier for object
@@ -140,10 +139,8 @@ class ADD_MODIFIER_TOOLS_OT_apply_all(Operator):
                     self.report({"INFO"}, F"Modifiers cannot be applied in edit mode the {obj}.")
                     return {"CANCELLED"}
                 else:
-                    try:
-                        apply_modifiers_for_object(obj)
-                    except:
-                        self.report({"INFO"}, "Failed to apply all modifiers.")
+                    for mod_name, err in apply_modifiers_for_object(obj):
+                        self.report({"WARNING"}, F"Failed to apply {mod_name} on {obj}: {err}")
 
         for area in context.screen.areas:
             area.tag_redraw()
