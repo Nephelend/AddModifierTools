@@ -11,12 +11,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+# bl_info is only read when installed as a legacy add-on;
+# Blender 4.2+ extensions use blender_manifest.toml instead.
 bl_info = {
     "name" : "Add Modifier Tools",
     "author" : "GhostEndSky",
     "description" : "Modifier Tools",
-    "blender" : (2, 80, 0),
-    "version" : (0, 0, 1),
+    "blender" : (5, 2, 0),
+    "version" : (0, 1, 0),
     "location" : "Properties > Modifiers",
     "warning" : "",
     "category" : "Interface"
@@ -29,8 +31,8 @@ import os
 import bpy
 
 # local module
-import AddModifierTools.ui as AMT_UI
-import AddModifierTools.operators as AMT_OT
+from . import ui as AMT_UI
+from . import operators as AMT_OT
 
 
 def register():
