@@ -91,8 +91,8 @@ def get_modifier_icon_dict():
 
 # ANCHOR Function - Get modifier layout
 # Categories follow Blender 5.2's Add Modifier menu
-# (scripts/startup/bl_ui/properties_data_modifier.py), including the
-# Grease Pencil modifiers that Blender lists inside each category.
+# (scripts/startup/bl_ui/properties_data_modifier.py). Like Blender, the
+# menu shows Grease Pencil modifiers only for Grease Pencil objects.
 ADD_MODIFIER_CATEGORIES = {
     "Edit": (
         "DATA_TRANSFER", "MESH_CACHE", "MESH_SEQUENCE_CACHE", "UV_PROJECT",
@@ -139,24 +139,35 @@ ADD_MODIFIER_CATEGORIES = {
 HIDDEN_MODIFIER_TYPES = {"SURFACE"}
 
 
+def is_grease_pencil_modifier(mod_id):
+    """ Check whether a modifier type only works on Grease Pencil objects """
+    return mod_id.startswith("GREASE_PENCIL_") or mod_id == "LINEART"
+
+
 def get_add_modifiers_layout():
-    """ Get add modifier layout dict """
+    """ Get add modifier layout dict for the active object's type """
     op = bpy.ops.object.modifier_add
     rna_enum = op.get_rna_type().properties["type"].enum_items
     available = {mod.identifier: mod for mod in rna_enum}
 
+    obj = bpy.context.active_object
+    for_grease_pencil = obj is not None and obj.type == "GREASEPENCIL"
+
     mod_dict = {}
     for cat, mod_ids in ADD_MODIFIER_CATEGORIES.items():
-        # Skip types this Blender build doesn't have
+        # Skip types this Blender build doesn't have, and types for the
+        # other kind of object
         mods = [(available[mod_id].identifier, available[mod_id].name, available[mod_id].icon)
-                for mod_id in mod_ids if mod_id in available]
+                for mod_id in mod_ids
+                if mod_id in available and is_grease_pencil_modifier(mod_id) == for_grease_pencil]
         if mods:
             mod_dict[cat] = mods
 
     # Keep types added in newer Blender versions reachable
     known = {mod_id for mod_ids in ADD_MODIFIER_CATEGORIES.values() for mod_id in mod_ids}
     other = [(mod.identifier, mod.name, mod.icon) for mod in rna_enum
-             if mod.identifier not in known and mod.identifier not in HIDDEN_MODIFIER_TYPES]
+             if mod.identifier not in known and mod.identifier not in HIDDEN_MODIFIER_TYPES
+             and is_grease_pencil_modifier(mod.identifier) == for_grease_pencil]
     if other:
         mod_dict["Other"] = other
     return mod_dict
