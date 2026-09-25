@@ -1,0 +1,32 @@
+schema_version = "1.0.0"
+
+id = "add_modifier_tools"
+version = "0.1.0"
+name = "Add Modifier Tools"
+tagline = "Add, apply, delete and expand modifiers on multiple objects"
+maintainer = "Nephelend <https://github.com/Nephelend>"
+type = "add-on"
+
+website = "https://github.com/Nephelend/AddModifierTools"
+
+tags = ["Modeling", "User Interface"]
+
+blender_version_min = "5.2.0"
+
+license = [
+  "SPDX:MIT",
+]
+copyright = [
+  "2023 ghostendsky",
+]
+
+[build]
+paths_exclude_pattern = [
+  "__pycache__/",
+  "/.git/",
+  "/.github/",
+  "/.gitignore",
+  "/screenshots/",
+  "/dist/",
+  "*.zip",
+]
