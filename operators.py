@@ -62,10 +62,7 @@ def delete_modifiers_for_object(obj=""):
     """ Delete modifier for object """
     if obj:
         obj_data = bpy.data.objects[obj]
-        mod_list = obj_data.modifiers
-        if len(mod_list) > 0:
-            for mod in mod_list:
-                obj_data.modifiers.remove(mod)
+        obj_data.modifiers.clear()
 
 
 # ANCHOR Function - Set expand collapse modifiers
@@ -93,29 +90,86 @@ def get_modifier_icon_dict():
 
 
 # ANCHOR Function - Get modifier layout
-# https://blenderartists.org/t/how-to-rebuild-the-add-modifier-menu-layout/1204906/2 By iceythe
-def get_add_modifiers_layout():
-    """ Get add modifier layout dict """
-    # Categories start on these modifiers
-    mods = ("DATA_TRANSFER", "ARRAY", "ARMATURE", "CLOTH")
+# Categories follow Blender 5.2's Add Modifier menu
+# (scripts/startup/bl_ui/properties_data_modifier.py). Like Blender, the
+# menu shows Grease Pencil modifiers only for Grease Pencil objects.
+ADD_MODIFIER_CATEGORIES = {
+    "Edit": (
+        "DATA_TRANSFER", "MESH_CACHE", "MESH_SEQUENCE_CACHE", "UV_PROJECT",
+        "UV_WARP", "VERTEX_WEIGHT_EDIT", "VERTEX_WEIGHT_MIX",
+        "VERTEX_WEIGHT_PROXIMITY",
+        "GREASE_PENCIL_TEXTURE", "GREASE_PENCIL_TIME",
+        "GREASE_PENCIL_VERTEX_WEIGHT_PROXIMITY",
+        "GREASE_PENCIL_VERTEX_WEIGHT_ANGLE",
+    ),
+    "Generate": (
+        "ARRAY", "BEVEL", "BOOLEAN", "BUILD", "DECIMATE", "EDGE_SPLIT",
+        "NODES", "MASK", "MIRROR", "MESH_TO_VOLUME", "MULTIRES", "REMESH",
+        "SCREW", "SKIN", "SOLIDIFY", "SUBSURF", "TRIANGULATE",
+        "VOLUME_TO_MESH", "WELD", "WIREFRAME",
+        "GREASE_PENCIL_ARRAY", "GREASE_PENCIL_BUILD", "GREASE_PENCIL_DASH",
+        "GREASE_PENCIL_ENVELOPE", "GREASE_PENCIL_LENGTH", "LINEART",
+        "GREASE_PENCIL_MIRROR", "GREASE_PENCIL_MULTIPLY",
+        "GREASE_PENCIL_OUTLINE", "GREASE_PENCIL_SIMPLIFY",
+        "GREASE_PENCIL_SUBDIV",
+    ),
+    "Deform": (
+        "ARMATURE", "CAST", "CURVE", "DISPLACE", "HOOK", "LAPLACIANDEFORM",
+        "LATTICE", "MESH_DEFORM", "SHRINKWRAP", "SIMPLE_DEFORM", "SMOOTH",
+        "CORRECTIVE_SMOOTH", "LAPLACIANSMOOTH", "SURFACE_DEFORM", "WARP",
+        "WAVE", "VOLUME_DISPLACE",
+        "GREASE_PENCIL_ARMATURE", "GREASE_PENCIL_HOOK",
+        "GREASE_PENCIL_LATTICE", "GREASE_PENCIL_NOISE",
+        "GREASE_PENCIL_OFFSET", "GREASE_PENCIL_SHRINKWRAP",
+        "GREASE_PENCIL_SMOOTH", "GREASE_PENCIL_THICKNESS",
+    ),
+    "Normals": (
+        "NORMAL_EDIT", "WEIGHTED_NORMAL",
+    ),
+    "Physics": (
+        "CLOTH", "COLLISION", "DYNAMIC_PAINT", "EXPLODE", "FLUID", "OCEAN",
+        "PARTICLE_INSTANCE", "PARTICLE_SYSTEM", "SOFT_BODY",
+    ),
+    "Color": (
+        "GREASE_PENCIL_COLOR", "GREASE_PENCIL_OPACITY", "GREASE_PENCIL_TINT",
+    ),
+}
 
-    # Rna enum items are listed in same order as menu
+# Internal types that Blender never offers in its Add Modifier menu
+HIDDEN_MODIFIER_TYPES = {"SURFACE"}
+
+
+def is_grease_pencil_modifier(mod_id):
+    """ Check whether a modifier type only works on Grease Pencil objects """
+    return mod_id.startswith("GREASE_PENCIL_") or mod_id == "LINEART"
+
+
+def get_add_modifiers_layout():
+    """ Get add modifier layout dict for the active object's type """
     op = bpy.ops.object.modifier_add
     rna_enum = op.get_rna_type().properties["type"].enum_items
-    mod_dict = {"Modify": [], "Generate": [], "Deform": [], "Simulate": []}
+    available = {mod.identifier: mod for mod in rna_enum}
 
-    for item, cat in zip(mods, mod_dict):
-        for mod in rna_enum[rna_enum.find(item):]:
-            mod_id = mod.identifier
-            # Delimit at next item in mods
-            if mod_id != item and mod_id in mods[mods.index(item):]:
-                break
-            mod_dict[cat].append((mod_id, mod.name, mod.icon))
+    obj = bpy.context.active_object
+    for_grease_pencil = obj is not None and obj.type == "GREASEPENCIL"
 
-    # There's an invalid entry called Surface at the end of "Simulate"
-    # category. It's a duplicate of Simple Deform so we remove it.
-    if mod_dict["Simulate"] and mod_dict["Simulate"][-1][0] == "SURFACE":
-        del mod_dict["Simulate"][-1]
+    mod_dict = {}
+    for cat, mod_ids in ADD_MODIFIER_CATEGORIES.items():
+        # Skip types this Blender build doesn't have, and types for the
+        # other kind of object
+        mods = [(available[mod_id].identifier, available[mod_id].name, available[mod_id].icon)
+                for mod_id in mod_ids
+                if mod_id in available and is_grease_pencil_modifier(mod_id) == for_grease_pencil]
+        if mods:
+            mod_dict[cat] = mods
+
+    # Keep types added in newer Blender versions reachable
+    known = {mod_id for mod_ids in ADD_MODIFIER_CATEGORIES.values() for mod_id in mod_ids}
+    other = [(mod.identifier, mod.name, mod.icon) for mod in rna_enum
+             if mod.identifier not in known and mod.identifier not in HIDDEN_MODIFIER_TYPES
+             and is_grease_pencil_modifier(mod.identifier) == for_grease_pencil]
+    if other:
+        mod_dict["Other"] = other
     return mod_dict
 
 
@@ -128,7 +182,7 @@ class ADD_MODIFIER_TOOLS_OT_apply_all(Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.selected_objects is not None
+        return bool(context.selected_objects)
 
     def execute(self, context):
         if (len(context.selected_objects) > 0):
@@ -157,7 +211,7 @@ class ADD_MODIFIER_TOOLS_OT_delete_all(Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.selected_objects is not None
+        return bool(context.selected_objects)
 
     def invoke(self, context, event):
         return context.window_manager.invoke_confirm(self, event)
@@ -212,7 +266,7 @@ class ADD_MODIFIER_TOOLS_OT_multiple_additional(Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.selected_objects is not None
+        return bool(context.selected_objects)
 
     def execute(self, context):
         mod_list = []
