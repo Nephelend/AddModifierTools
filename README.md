@@ -19,11 +19,24 @@ Blender minimal version : 5.2 (packaged as a Blender extension)
 # Build the extension zip
 The extension metadata lives in `blender_manifest.toml`. Build with Blender's own command line tool from the repository root:
 
+Blender does not create the output folder for you, so create `dist` first.
+
+macOS / Linux:
+
 ```sh
+mkdir -p dist
 blender --command extension validate
 blender --command extension build --output-dir dist
 ```
 
-This writes `dist/add_modifier_tools-<version>.zip`. Files listed in `paths_exclude_pattern` in the manifest (screenshots, git files, `__pycache__`) are left out of the zip.
+Windows (PowerShell):
+
+```powershell
+New-Item -ItemType Directory -Force dist
+& "C:\path\to\blender.exe" --command extension validate
+& "C:\path\to\blender.exe" --command extension build --output-dir dist
+```
+
+This writes `dist/add_modifier_tools-<version>.zip`. Files listed in `paths_exclude_pattern` in the manifest (screenshots, git files, `__pycache__`, the `dist` folder and any `.zip`) are left out of the zip, so older builds never end up inside a new one.
 
 When releasing a new version, bump `version` in `blender_manifest.toml` (and `bl_info` in `__init__.py` to match).
