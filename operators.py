@@ -171,7 +171,7 @@ class ADD_MODIFIER_TOOLS_OT_apply_all(Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.selected_objects is not None
+        return bool(context.selected_objects)
 
     def execute(self, context):
         if (len(context.selected_objects) > 0):
