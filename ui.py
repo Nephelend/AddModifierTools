@@ -12,7 +12,7 @@ from bpy.props import (IntProperty,
                        CollectionProperty)
 
 # local module
-import AddModifierTools.operators as AMT_OT
+from . import operators as AMT_OT
 
 
 # ANCHOR UIList - listtype
