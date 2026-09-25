@@ -12,7 +12,7 @@ from bpy.props import (IntProperty,
                        CollectionProperty)
 
 # local module
-import AddModifierTools.operators as AMT_OT
+from . import operators as AMT_OT
 
 
 # ANCHOR UIList - listtype
@@ -72,7 +72,7 @@ def draw(self, context):
         row = layout.row()
         col = row.column(align=True)
         row = col.row(align=True)
-        row.operator(AMT_OT.ADD_MODIFIER_TOOLS_OT_multiple_additional.bl_idname, text="Multiple Additional")
+        row.operator(AMT_OT.ADD_MODIFIER_TOOLS_OT_multiple_additional.bl_idname, text="Add List to Selected")
         row = col.row(align=True)
         row.prop(scn, "show_hideB")
         row.label(text="Modifier Operator")
