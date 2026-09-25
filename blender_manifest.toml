@@ -14,7 +14,7 @@ tags = ["Modeling", "User Interface"]
 blender_version_min = "5.2.0"
 
 license = [
-  "SPDX:GPL-3.0-or-later",
+  "SPDX:MIT",
 ]
 copyright = [
   "2023 ghostendsky",
