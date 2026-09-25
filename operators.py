@@ -208,9 +208,9 @@ class ADD_MODIFIER_TOOLS_OT_expand_collapse(Operator):
 
 # ANCHOR Operator - multiple additional
 class ADD_MODIFIER_TOOLS_OT_multiple_additional(Operator):
-    """ Multiple Additional Modifiers Operator """
+    """ Add every modifier in the Modifier Tools list to all selected objects """
     bl_idname      = "add_modifier_tools.multiple_additional_modifiers"
-    bl_label       = "Multiple Additional Modifiers"
+    bl_label       = "Add List to Selected"
     bl_options     = {"REGISTER", "UNDO"}
 
     @classmethod
@@ -254,6 +254,16 @@ class ADD_MODIFIER_TOOLS_OT_list_action(Operator):
             ("ADD"   , "Add"   , "")
         )
     )
+
+    @classmethod
+    def description(cls, context, properties):
+        return {
+            "UP"    : "Move the modifier up in the list",
+            "DOWN"  : "Move the modifier down in the list",
+            "REMOVE": "Remove the modifier from the list",
+            "ADD"   : "Queue a modifier in the list. "
+                      "Use Add List to Selected to add the queued modifiers to the selected objects",
+        }[properties.action]
 
     def invoke(self, context, event):
         scn = context.scene
